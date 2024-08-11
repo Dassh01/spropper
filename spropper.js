@@ -8,6 +8,9 @@ https://sprig.hackclub.com/gallery/getting_started
 @addedOn: 2024-00-00
 */
 
+var gameover = false
+var lastplayerx = 0
+
 //Sprite mapping
 const player = "p"
 const stock_wall = "w"
@@ -15,20 +18,21 @@ const spike = "s"
 const grey = "g"
 const dark_grey = "d"
 const black = "b"
+const platform = "l"
 
 //Constant game values - modify for a different game experience
 const airtimeMax = 250
 const baselineY = 2
 const sinkrate = 200 // How fast the player sinks in milliseconds
-const jumpdelay = 250 //The time between moving up 1 y during a jump and the next step up
+const jumpdelay = 250 // The time between moving up 1 y during a jump and the next step up
 const floorY = 33
-const tickrate = 10
+const tickrate = 10 // How often checks for things like collision are done (ms)
 
 //Functions
 function sinkplayer() {
   setInterval(() => {
-    if (playerSprite.y < floorY) { // Check if player isn't on the floor
-      playerSprite.y += 1; // Incrementally bring them down
+    if (getFirst(player).y < floorY) { // Check if player isn't on the floor
+      getFirst(player).y += 1; // Incrementally bring them down
     }
   }, sinkrate); // (keep in mind) sinkrate is a global variable
 }
@@ -36,9 +40,20 @@ function sinkplayer() {
 function gameoverCheck() {
   setInterval(() => {
     if (isPlayerTouchingDeadlyObj()) { // Check if player is on a spike
-      pushdebug("Game over")
+      gameover = true
     }
-  }, 10); 
+  }, tickrate); 
+}
+
+function nextlevelCheck() {
+  setInterval(() => {
+    if (isPlayerTouchingLevelTransition()) {
+      lastplayerx = getFirst(player).x;
+      level++; // Increment the level to load the next level
+      setMap(levels[level]); // Correct function call syntax to switch to the next level
+      pushdebug("level=" + level);
+    }
+  }, tickrate);
 }
 
 function sleep(ms) {
@@ -46,44 +61,49 @@ function sleep(ms) {
 }
 
 function pushdebug(message) {
+  clearText()
   addText("debug output:\n" + message, { x:5, y:5, color: color`3`});
 }
 
 function isPlayerOnSomething() {
-    const playerTileBelow = getTile(playerSprite.x, playerSprite.y + 1);
-    return playerTileBelow.some(sprite => sprite.type === box || sprite.type === stock_wall);
+    const playerTileBelow = getTile(getFirst(player).x, getFirst(player).y + 1);
+    return playerTileBelow.some(sprite => sprite.type === platform);
 }
 
 function isPlayerTouchingDeadlyObj() {
-  pushdebug("func ran")
-  const playerTileBelow = getTile(playerSprite.x, playerSprite.y + 1);
+  const playerTileBelow = getTile(getFirst(player).x, getFirst(player).y + 1);
   return playerTileBelow.some(sprite => sprite.type === spike)
 }
 
+function isPlayerTouchingLevelTransition() {
+  const playerTileBelow = getTile(getFirst(player).x, getFirst(player).y + 1);
+  return playerTileBelow.some(sprite => sprite.type === black)
+}
+
 function jumpSlowly() {
-  playerSprite.y -= 1
+  getFirst(player).y -= 1
   sleep(100)
-  playerSprite.y -= 1
+  getFirst(player).y -= 1
 }
 
 setLegend(
   [ player, bitmap`
-0000000000000000
+00LLLLLLLCCCCC00
+0....CCCCCCCCCC0
+L.CCCCCCCCCCCC.L
+L.CCCCCCC......L
+L..............L
+L..............L
+L..............L
+L...0......0...L
+L..............L
+L..............L
+L..............L
+L....0....0....L
+L.....0000.....L
+L..............L
 0..............0
-0..............0
-0..............0
-0...3.......3..0
-0..............0
-0..............0
-0..............0
-0.33.........330
-0..33........3.0
-0...333....333.0
-0.....333333...0
-0..............0
-0..............0
-0..............0
-0000000000000000` ],
+00LLLLLLLLLLLL00` ],
   [ stock_wall, bitmap`
 LLLLLLLLLLLLLLLL
 111L1111111L1111
@@ -168,14 +188,30 @@ LLLLLLLLLLLLLLLL`],
 0000000000000000
 0000000000000000
 0000000000000000
-0000000000000000`]
+0000000000000000`],
+  [ platform, bitmap`
+LLLLLLLLLLLLLLLL
+CCCCLCCCCCCLCCCC
+CCC1L1CCCC1L1CCC
+CC11L11CC11L11CC
+LLLLLLLLLLLLLLLL
+................
+................
+................
+................
+................
+................
+................
+................
+................
+................
+................`]
 )
 
-setSolids([player, stock_wall, spike])
+setSolids([player, stock_wall, spike, platform])
 
 let level = 0
-let airtime = 0
-let lastinput
+
 const levels = [
   map`
 w....p.....w
@@ -184,53 +220,113 @@ w..........w
 w..s.......w
 w..........w
 w..........w
-w.......s..w
+wll.....s..w
 w..........w
 w..........w
 w..........w
 w..........w
-w..........w
+w........llw
 w...s......w
 w..........w
 w..........w
 w..........w
 w..........w
+wggggggggggw
+wddddddddddw
+wbbbbbbbbbbw`,
+  map`
+w..........w
+w..........w
+w..........w
+w..........w
+w.p........w
+w..........w
+wlll.......w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w.......lllw
+w..........w
+w..........w
 w..........w
 w..........w
 w..........w`,
+  map`
+.p.....
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......
+.......`
 ]
 
 setMap(levels[level])
 
-const playerSprite = getFirst(player)
+onInput("w", () => {
+  if (isPlayerOnSomething()) {
+    pushdebug("w")
+    jumpSlowly()
+  }
+  else {
+    pushdebug("player not on")
+  }
+})
 
-setPushables({
-  [ player ]: []
+onInput("a", () => {
+  getFirst(player).x -= 1
+  pushdebug("a")
 })
 
 onInput("s", () => {
-  playerSprite.y += 1
+  getFirst(player).y += 1
+  pushdebug("s")
 })
-onInput("w", () => {
-  onSmth = isPlayerOnSomething()
-  if (onSmth) {
-    pushdebug("on smth? "+ onSmth)
-    jumpSlowly()
-    //playerSprite.y -= 1
-  }
-  else {
-    pushdebug("on smth?" + onSmth)
-  }
-})
-onInput("a", () => {
-  playerSprite.x -= 1
-})
+
 onInput("d", () => {
-  playerSprite.x += 1
+  getFirst(player).x += 1
+})
+
+onInput("i", () => {
+  level++
+  setMap(levels[level]); // Correct function call syntax to switch to the next level
 })
 
 sinkplayer(); // Call sinkplayer function continuously
 gameoverCheck();
+nextlevelCheck();
 
 afterInput(() => {
 
