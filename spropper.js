@@ -19,11 +19,12 @@ const grey = "g"
 const dark_grey = "d"
 const black = "b"
 const platform = "l"
+const background = "z"
 
 //Constant game values - modify for a different game experience
 const airtimeMax = 250
 const baselineY = 2
-const sinkrate = 200 // How fast the player sinks in milliseconds
+const sinkrate = 300 // How fast the player sinks in milliseconds
 const jumpdelay = 250 // The time between moving up 1 y during a jump and the next step up
 const floorY = 33
 const tickrate = 10 // How often checks for things like collision are done (ms)
@@ -40,18 +41,33 @@ function sinkplayer() {
 function gameoverCheck() {
   setInterval(() => {
     if (isPlayerTouchingDeadlyObj()) { // Check if player is on a spike
-      gameover = true
+      gameover = true;
+      level -= 1;
+      setMap(levels[level]);
     }
-  }, tickrate); 
+
+    if (gameover) {
+      gameoverSequence();
+    }
+    else {
+      clearText()
+    }
+  }, 200);
 }
 
+function gameoverSequence() {
+  addText("Game Over!", { x: 5, y: 0, color: color`3` });
+  addText("Play again?", { x: 5, y: 1, color: color`0` });
+
+  addText("Yes", { x:6, y:9, color: color`4`})
+  addText("No", { x:12, y:9, color: color`3`})
+}
 function nextlevelCheck() {
   setInterval(() => {
     if (isPlayerTouchingLevelTransition()) {
       lastplayerx = getFirst(player).x;
       level++; // Increment the level to load the next level
       setMap(levels[level]); // Correct function call syntax to switch to the next level
-      pushdebug("level=" + level);
     }
   }, tickrate);
 }
@@ -89,20 +105,20 @@ function jumpSlowly() {
 setLegend(
   [ player, bitmap`
 00LLLLLLLCCCCC00
-0....CCCCCCCCCC0
-L.CCCCCCCCCCCC.L
-L.CCCCCCC......L
-L..............L
-L..............L
-L..............L
-L...0......0...L
-L..............L
-L..............L
-L..............L
-L....0....0....L
-L.....0000.....L
-L..............L
-0..............0
+02222CCCCCCCCCC0
+L2CCCCCCCCCCCC2L
+L2CCCCCCC222222L
+L22222222222222L
+L22222222222222L
+L22222222222222L
+L22202222220222L
+L22222222222222L
+L22222222222222L
+L22222222222222L
+L22220222202222L
+L22222000022222L
+L22222222222222L
+0222222222222220
 00LLLLLLLLLLLL00` ],
   [ stock_wall, bitmap`
 LLLLLLLLLLLLLLLL
@@ -205,14 +221,53 @@ LLLLLLLLLLLLLLLL
 ................
 ................
 ................
-................`]
+................`],
+  [ background, bitmap`
+LLLLLLLLLLLLLL1L
+LLLLLLLLLLLLL11L
+1111111LLLL11L1L
+LLLLLL11L111LLLL
+LLLLLLL111LLLLLL
+LLLLLLLLLLLLLLLL
+LLLLLLLLLLLLLLLL
+1LLLLLLLLLLLLLLL
+11111LLLLLLLLLL1
+LLLL11111111L11L
+LLLLLLLLLLL111LL
+LLLLLLLLLLLLLLLL
+LLLLLLLLLLLLLLLL
+LLLLLLLLLLLLLLLL
+LLLLLLLLLLLLLLLL
+LLLLLLLLLLLLLLLL`]
 )
 
 setSolids([player, stock_wall, spike, platform])
+setBackground("z")
 
-let level = 0
+let level = 1
 
 const levels = [
+  map`
+w...........w
+w...........w
+w.....p.....w
+wl..llwll..lw
+w.....w.....w
+w.....w.....w
+w.....w.....w
+w.....w.....w
+w.....w.....w
+w.....w.....w
+w.....w.....w
+w.....w.....w
+w.....w.....w
+w.....w.....w
+w.....w.....w
+w.....w.....w
+w.....w.....w
+w.....w.....w
+w.....w.....w
+w.....w.....w`,
   map`
 w....p.....w
 w..........w
@@ -252,67 +307,46 @@ w..........w
 w.......lllw
 w..........w
 w..........w
-w..........w
-w..........w
-w..........w`,
+wggggggggggw
+wddddddddddw
+wbbbbbbbbbbw`,
   map`
-.p.....
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......
-.......`
+w.....p....w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w`
 ]
 
 setMap(levels[level])
 
 onInput("w", () => {
   if (isPlayerOnSomething()) {
-    pushdebug("w")
     jumpSlowly()
-  }
-  else {
-    pushdebug("player not on")
   }
 })
 
 onInput("a", () => {
   getFirst(player).x -= 1
-  pushdebug("a")
 })
 
 onInput("s", () => {
   getFirst(player).y += 1
-  pushdebug("s")
 })
 
 onInput("d", () => {
