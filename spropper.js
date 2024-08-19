@@ -6,7 +6,9 @@
 @addedOn: 2024-00-00
 */
 
-var gameover = false
+console.log("Thank you sprig overlords for adding a console")
+
+var playing = true
 var lastplayerx = 0
 var time = 0 //Seconds
 
@@ -25,12 +27,12 @@ const leftchain = "c"
 const leftendplatform = "e"
 const rightendplatform = "j"
 const rightchain = "f"
+const wintrigger = "t"
 
 //Constant game values - modify for a different game experience
 const airtimeMax = 250
 const baselineY = 2
 const sinkrate = 300 // How fast the player sinks in milliseconds
-const jumpdelay = 250 // The time between moving up 1 y during a jump and the next step up
 const floorY = 33
 const tickrate = 10 // How often checks for things like collision are done (ms)
 
@@ -40,40 +42,49 @@ function sinkplayer() {
     if (getFirst(player).y < floorY) { // Check if player isn't on the floor
       getFirst(player).y += 1; // Incrementally bring them down
     }
-  }, sinkrate); // (keep in mind) sinkrate is a global variable
+  }, sinkrate);
 }
 
-function gameoverCheck() {
+function gameoverProcess() {
   setInterval(() => {
-    if (isPlayerTouchingDeadlyObj()) { // Check if player is on a spike
-      gameover = true;
-      level = 0;
-      setMap(levels[level]);
-    }
-    if (gameover) {
+    if (isPlayerTouchingLose()) { // Check if player is on a spike
       clearText()
-      gameoverSequence();
-    } else {
+      gameoverSequence(false)
+    }
+    else if (isPlayerWon()) {
+      clearText()
+      gameoverSequence(true)
     }
   }, 200);
 }
 
-function gameoverSequence() {
-  addText("Game Over!", { x: 5, y: 0, color: color`3` });
+function gameoverSequence(won) {
+  console.log("gameoverSequence run")
+  level = 0;
+  setMap(levels[level]);
+  playing = false
+  
+  if(won) { 
+    addText("Game Won!", { x: 5, y: 0, color: color`4` }); 
+  }
+  else { 
+    addText("Game Over!", { x: 5, y: 0, color: color`3` }); 
+  }
+  
   addText("Play again?", { x: 5, y: 1, color: color`0` });
 
   addText("Yes", { x: 6, y: 9, color: color`4` })
   addText("No", { x: 12, y: 9, color: color`3` })
 
   if (isPlayerTouchingYesOrNo() == 1) {
-    gameover = false
+    playing = true
     level = 1
     setMap(levels[level]);
     clearText()
   }
 }
 
-function nextlevelCheck() {
+function nextlevelProcess() {
   setInterval(() => {
     if (isPlayerTouchingLevelTransition()) {
       lastplayerx = getFirst(player).x;
@@ -94,13 +105,21 @@ function pushdebug(message) {
   addText("debug output:\n" + message, { x: 5, y: 5, color: color`3` });
 }
 
+function isPlayerWon() {
+  if(level == 6 && getFirst(player.y) < 28) {
+    won = true
+    return true
+  }
+  else { return false }
+}
+
 function isPlayerOnSomething() {
   //Dictates whether the player can jump
   const playerTileBelow = getTile(getFirst(player).x, getFirst(player).y + 1);
   return playerTileBelow.some(sprite => sprite.type === platform || leftendplatform || rightendplatform);
 }
 
-function isPlayerTouchingDeadlyObj() {
+function isPlayerTouchingLose() {
   //Dictates whether the player has lost or not
   const playerTileBelow = getTile(getFirst(player).x, getFirst(player).y + 1);
   return playerTileBelow.some(sprite => sprite.type === spike)
@@ -134,14 +153,16 @@ function jumpSlowly() {
 
 function updateCounters() {
   addText("Time=0", {x:13,y:1,color:color`2`});
+  //They in they own intervals cause they gotta run at different speeds
   setInterval(() => {
-    if(!gameover) {
+    if(playing) {
       time++
       addText("Time="+time, {x:13,y:1,color:color`2`});
     }
   }, 1000);
+  
   setInterval(() => {
-    if(!gameover) {
+    if(playing) {
       addText("Level="+level, {x:1,y:1,color:color`2`});
     }
   }, tickrate)
@@ -385,7 +406,24 @@ L11111LL1111LL11
 1LL111111LL11111
 LL111111LL111111
 1111111LL1111111
-111111LL11111111`]
+111111LL11111111`],
+  [wintrigger, bitmap`
+................
+................
+4D444444444D4444
+44444D444D44D444
+................
+................
+44444D4444444D44
+44D4444444D44444
+................
+................
+444D444444444444
+44444444D4444444
+................
+................
+4444444444444444
+4444444444444444`]
 )
 
 setSolids([player, stock_wall, spike, platform, leftendplatform, rightendplatform, leftchain, rightchain])
@@ -399,8 +437,8 @@ const levels = [
 w...........w
 w...........w
 w.....p.....w
-wl..llwll..lw
-w.....w.....w
+we..jlwle..jw
+w....fwc....w
 w.....w.....w
 w.....w.....w
 w.....w.....w
@@ -436,7 +474,7 @@ w......s...w
 w..........w
 wggggggggggw
 wddddddddddw
-wbbbbbbbbbbw`,
+wbbbbbbbbbbw`, //L1
   map`
 w....p.....w
 w..........w
@@ -452,12 +490,12 @@ w..........w
 w..........w
 w..........w
 w..........w
-w...ssssjllw
+w....sssjllw
 w........f.w
 w.........fw
 wggggggggggw
 wddddddddddw
-wbbbbbbbbbbw`,
+wbbbbbbbbbbw`, //L2
   map`
 w.....p....w
 wle........w
@@ -478,7 +516,7 @@ w...ss...f.w
 w....ss...fw
 wggggggggggw
 wddddddddddw
-wbbbbbbbbbbw`,
+wbbbbbbbbbbw`, //L3
   map`
 w....p.....w
 w..........w
@@ -497,9 +535,61 @@ w.ss.....s.w
 w..........w
 w...s......w
 w..........w
-w..s..s.s..w
+wggsggsgsggw
+wddddddddddw
+wbbbbbbbbbbw`, //L4
+  map`
+w....p.....w
 w..........w
-w..........w`
+w..........w
+ws........sw
+w.s......s.w
+w..s....s..w
+w...s..s...w
+w..........w
+w..........w
+w....ss....w
+w..........w
+w..s....s..w
+w..........w
+w....ss....w
+wss......ssw
+w..........w
+w...s..s...w
+wggggggggggw
+wddddddddddw
+wbbbbbbbbbbw`, //L5
+  map`
+wp.........w
+w..........w
+wllle..jlllw
+w..c....f..w
+w.c......f.w
+wc....s...fw
+w....s.....w
+w.....s....w
+w.s......s.w
+w..........w
+w..s.s..s..w
+w..........w
+w..........w
+w....s...s.w
+w..........w
+w...s......w
+w.....ss...w
+w..s....s..w
+w..........w
+w....s.....w
+w.......s..w
+w..........w
+w.s...s....w
+w........s.w
+ws...s.....w
+w..........w
+w..........w
+w..........w
+w........s.w
+wttttttttttw` //L6
 ]
 
 setMap(levels[level]) //Mabye maintain level int to be constantly referenced
@@ -529,8 +619,8 @@ onInput("i", () => {
 
 //All of these functions run off setInterval to form their own local little loops
 sinkplayer();
-gameoverCheck();
-nextlevelCheck();
+gameoverProcess();
+nextlevelProcess();
 updateCounters();
 
 afterInput(() => {
