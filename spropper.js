@@ -11,6 +11,7 @@ console.log("Thank you sprig overlords for adding a console")
 var playing = true
 var lastplayerx = 0
 var time = 0 //Seconds
+var gameoverHappened = false
 
 //Sprite mapping
 const player = "p"
@@ -58,11 +59,27 @@ function gameoverProcess() {
   }, 200);
 }
 
+function trackPlayingProcess() {
+  setInterval(() => {
+    if (level == 0) { 
+      playing = false;
+    } else { 
+      playing = true;
+    }
+
+    if(((level-1) == 0)&&gameoverHappened) {
+      clearText()
+      gameoverHappened = false
+    }
+  }, tickrate); // Added closing parenthesis and semicolon
+}
+
 function gameoverSequence(won) {
+  time = 0
+  gameoverHappened = true
   console.log("gameoverSequence run")
   level = 0;
   setMap(levels[level]);
-  playing = false
   
   if(won) { 
     addText("Game Won!", { x: 5, y: 0, color: color`4` }); 
@@ -76,12 +93,6 @@ function gameoverSequence(won) {
   addText("Yes", { x: 6, y: 9, color: color`4` })
   addText("No", { x: 12, y: 9, color: color`3` })
 
-  if (isPlayerTouchingYesOrNo() == 1) {
-    playing = true
-    level = 1
-    setMap(levels[level]);
-    clearText()
-  }
 }
 
 function nextlevelProcess() {
@@ -99,18 +110,9 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function pushdebug(message) {
-  //No console ;(
-  clearText()
-  addText("debug output:\n" + message, { x: 5, y: 5, color: color`3` });
-}
-
 function isPlayerWon() {
-  if(level == 6 && getFirst(player.y) < 28) {
-    won = true
-    return true
-  }
-  else { return false }
+  const playerTileBelow = getTile(getFirst(player).x, getFirst(player).y + 1);
+  return playerTileBelow.some(sprite => sprite.type === wintrigger);
 }
 
 function isPlayerOnSomething() {
@@ -131,18 +133,6 @@ function isPlayerTouchingLevelTransition() {
   return playerTileBelow.some(sprite => sprite.type === black)
 }
 
-function isPlayerTouchingYesOrNo() {
-  //Dictates whether the game continues or not
-  const playerTileBelow = getTile(getFirst(player).x, getFirst(player).y + 1);
-  if (playerTileBelow.some(sprite => sprite.type === yestrigger)) {
-    return 1 //Signals yes
-  } else if ((playerTileBelow.some(sprite => sprite.type === notrigger))) {
-    return 2 //Signals no
-  } else {
-    return 0
-  }
-}
-
 function jumpSlowly() {
   //I don't even think this works like I mean it to
   for (let i = 0; i < 3; i++) {
@@ -152,18 +142,18 @@ function jumpSlowly() {
 }
 
 function updateCounters() {
-  addText("Time=0", {x:13,y:1,color:color`2`});
+  addText("Time=0", {x:12,y:2,color:color`2`});
   //They in they own intervals cause they gotta run at different speeds
   setInterval(() => {
     if(playing) {
       time++
-      addText("Time="+time, {x:13,y:1,color:color`2`});
+      addText("Time="+time, {x:12,y:2,color:color`2`});
     }
   }, 1000);
   
   setInterval(() => {
     if(playing) {
-      addText("Level="+level, {x:1,y:1,color:color`2`});
+      addText("Level="+level, {x:0,y:2,color:color`2`});
     }
   }, tickrate)
 }
@@ -446,14 +436,14 @@ w.....w.....w
 w.....w.....w
 w.....w.....w
 w.....w.....w
+w.....w.....w
 wyyyyywnnnnnw
 wyyyyywnnnnnw
 wyyyyywnnnnnw
 wyyyyywnnnnnw
 wyyyyywnnnnnw
 wyyyyywnnnnnw
-wyyyyywnnnnnw
-wyyyyywnnnnnw`,
+wbbbbbwellljw`,
   map`
 w....p.....w
 w..........w
@@ -622,6 +612,7 @@ sinkplayer();
 gameoverProcess();
 nextlevelProcess();
 updateCounters();
+trackPlayingProcess();
 
 afterInput(() => {
 
