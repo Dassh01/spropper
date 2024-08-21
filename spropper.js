@@ -3,10 +3,18 @@
 @title: spropper
 @author: bea
 @tags: []
-@addedOn: 2024-00-00
+@addedOn: 2024-08-21
 */
 
-console.log("Thank you sprig overlords for adding a console")
+/*
+
+Scrappily put together js game about not touching spikes, got the idea from downwell! (Really fun rougelite)
+Controls: W A S D, You can only move up when your on a platform
+You can cheat going forward a level by pressing i, I think the game freaks out though if you do that
+
+*/
+
+console.log("Thank you sprig overlords for adding a console log :)")
 
 var playing = true
 var lastplayerx = 0
@@ -29,65 +37,63 @@ const leftendplatform = "e"
 const rightendplatform = "j"
 const rightchain = "f"
 const wintrigger = "t"
+const flame = "x"
 
-//Constant game values - modify for a different game experience
-const airtimeMax = 250
-const baselineY = 2
+// Constant game values - modify for a different game experience
 const sinkrate = 300 // How fast the player sinks in milliseconds
-const floorY = 33
-const tickrate = 10 // How often checks for things like collision are done (ms)
+const floorY = 33 // Uhhhhhh
+const tickrate = 1 // How often checks for things like collision are done (ms)
 
-//Functions
-function sinkplayer() {
+// Functions
+function sinkplayer() { //Responsible for applying gravity to the player
   setInterval(() => {
-    if (getFirst(player).y < floorY) { // Check if player isn't on the floor
-      getFirst(player).y += 1; // Incrementally bring them down
+    if (getFirst(player).y < floorY) { //See if player is on floor
+      getFirst(player).y += 1; //Subtract player height
     }
   }, sinkrate);
 }
 
-function gameoverProcess() {
+function gameoverProcess() { //Responsible for checking if the game is over
   setInterval(() => {
     if (isPlayerTouchingLose()) { // Check if player is on a spike
       clearText()
       gameoverSequence(false)
-    }
-    else if (isPlayerWon()) {
+    } else if (isPlayerWon()) { // Check if player has reached the bottom
       clearText()
       gameoverSequence(true)
     }
-  }, 200);
+  }, tickrate);
 }
 
-function trackPlayingProcess() {
+function trackPlayingProcess() { //Updates the 'playing' boolean based on if the player is in the gameover stage or not, other functions reference that boolean
   setInterval(() => {
-    if (level == 0) { 
+    if (level == 0) {
       playing = false;
-    } else { 
+    } else {
       playing = true;
     }
 
-    if(((level-1) == 0)&&gameoverHappened) {
+    if (((level - 1) == 0) && gameoverHappened) {
       clearText()
       gameoverHappened = false
     }
   }, tickrate); // Added closing parenthesis and semicolon
 }
 
-function gameoverSequence(won) {
-  time = 0
+function gameoverSequence(won) { //The stuff that happens when the game is over in either case
+  addText("Final time: " + time, { x: 0, y: 3, color: color`2` });
+  time = 0;
   gameoverHappened = true
   console.log("gameoverSequence run")
   level = 0;
   setMap(levels[level]);
-  
-  if(won) { 
-    addText("Game Won!", { x: 5, y: 0, color: color`4` }); 
+
+  if (won) {
+    addText("Game Won!", { x: 5, y: 0, color: color`4` });
+  } else {
+    addText("Game Over!", { x: 5, y: 0, color: color`3` });
   }
-  else { 
-    addText("Game Over!", { x: 5, y: 0, color: color`3` }); 
-  }
-  
+
   addText("Play again?", { x: 5, y: 1, color: color`0` });
 
   addText("Yes", { x: 6, y: 9, color: color`4` })
@@ -95,21 +101,31 @@ function gameoverSequence(won) {
 
 }
 
-function nextlevelProcess() {
+function nextlevelProcess() { // Handles level transitions
   setInterval(() => {
     if (isPlayerTouchingLevelTransition()) {
       lastplayerx = getFirst(player).x;
       level++;
-      setMap(levels[level]); 
+      setMap(levels[level]);
       getFirst(player).x = lastplayerx;
     }
   }, tickrate);
 }
 
-function sleep(ms) {
+function sleep(ms) { // What even is settimeout???
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function burn() {
+  setInterval(() => {
+    if (!playing && isPlayerRefusingToPlayMyAmazingGame()) {
+      for (let i = 0; i < 5; i++) {
+        addSprite((7 + i), 18, flame)
+      }
+    }
+  }, tickrate);
+}
+// Functions that return booleans
 function isPlayerWon() {
   const playerTileBelow = getTile(getFirst(player).x, getFirst(player).y + 1);
   return playerTileBelow.some(sprite => sprite.type === wintrigger);
@@ -133,6 +149,11 @@ function isPlayerTouchingLevelTransition() {
   return playerTileBelow.some(sprite => sprite.type === black)
 }
 
+function isPlayerRefusingToPlayMyAmazingGame() {
+  const playerTileBelow = getTile(getFirst(player).x, getFirst(player).y + 1);
+  return playerTileBelow.some(sprite => sprite.type === notrigger)
+}
+// -----------------------------------------
 function jumpSlowly() {
   //I don't even think this works like I mean it to
   for (let i = 0; i < 3; i++) {
@@ -141,23 +162,23 @@ function jumpSlowly() {
   }
 }
 
-function updateCounters() {
-  addText("Time=0", {x:12,y:2,color:color`2`});
+function updateCounters() { // Updates "level" and "time"
+  addText("Time=0", { x: 12, y: 2, color: color`2` });
   //They in they own intervals cause they gotta run at different speeds
   setInterval(() => {
-    if(playing) {
+    if (playing) {
       time++
-      addText("Time="+time, {x:12,y:2,color:color`2`});
+      addText("Time=" + time, { x: 12, y: 2, color: color`2` });
     }
   }, 1000);
-  
+
   setInterval(() => {
-    if(playing) {
-      addText("Level="+level, {x:0,y:2,color:color`2`});
+    if (playing) {
+      addText("Level=" + level, { x: 0, y: 2, color: color`2` });
     }
   }, tickrate)
 }
-  
+
 setLegend(
   [player, bitmap`
 00LLLLLLLCCCCC00
@@ -413,7 +434,24 @@ LL111111LL111111
 ................
 ................
 4444444444444444
-4444444444444444`]
+4444444444444444`],
+  [flame, bitmap`
+................
+.........9......
+........999.....
+.......96699....
+......996699....
+.....99666699...
+.99.996666699...
+999.966633669.9.
+999996633336999.
+999966333336999.
+9996663333366999
+9996663333336999
+9966633333336999
+9966633333336699
+9966333333333669
+9666333333333666`]
 )
 
 setSolids([player, stock_wall, spike, platform, leftendplatform, rightendplatform, leftchain, rightchain])
@@ -613,6 +651,7 @@ gameoverProcess();
 nextlevelProcess();
 updateCounters();
 trackPlayingProcess();
+burn();
 
 afterInput(() => {
 
